@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "functions": {
+    "api/chapter.js": { "maxDuration": 60, "memory": 1024 },
+    "api/novels.js": { "maxDuration": 60 }
+  }
+}
