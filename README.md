@@ -14,10 +14,19 @@ Aplikasi web untuk menjelajah dan membaca novel cerita silat (cersil) langsung d
 
 Folder sumber: https://drive.google.com/drive/folders/1-EMcpVgJpofRhz2WisJIww04hodY_uKt
 
-- Setiap **subfolder** dianggap satu novel. File di dalamnya (termasuk sub-subfolder seperti "Jilid 1") menjadi bagian-bagian novel, diurutkan secara alami (Jilid 2 sebelum Jilid 10). Gambar pertama di folder itu dipakai sebagai sampul.
-- Setiap **file** di folder utama dianggap satu novel utuh.
-- Nama berpola `Judul - Pengarang` akan dipisah menjadi judul dan pengarang.
-- Format yang dibaca: Google Docs, PDF (berbasis teks, bukan hasil scan), DOCX, TXT, MD, HTML.
+```
+Dataset Cersil/
+└── KARYA_DJATILAKSANA/              → kategori pengarang ("Djatilaksana")
+    ├── 1. Sawer Wulung_Ejaan Lama/  → satu buku ("Sawer Wulung", edisi Ejaan Lama)
+    │   ├── sawer-wulung-01.pdf      → Jilid 1
+    │   └── sawer-wulung-02.pdf      → Jilid 2
+    └── Judul Lepas.pdf              → buku satu jilid
+```
+
+- Urutan buku mengikuti nomor di depan nama folder, dan urutan jilid mengikuti nomor di nama file (urutan alami: 2 sebelum 10).
+- Gambar (JPG/PNG) di dalam folder buku dipakai sebagai sampul.
+- PDF berbasis teks ditata ulang menjadi halaman buku. PDF hasil scan (atau di atas 8 MB) ditampilkan sebagai gambar halaman aslinya.
+- Format lain yang dibaca: Google Docs, DOCX, TXT, MD, HTML.
 
 ## Deploy ke Vercel
 

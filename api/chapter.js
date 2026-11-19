@@ -49,10 +49,21 @@ export default async function handler(req, res) {
       const mammoth = await import('mammoth');
       text = (await mammoth.extractRawText({ buffer: buf })).value;
     } else if (mt === 'application/pdf' || /\.pdf$/i.test(name)) {
-      const { extractText, getDocumentProxy } = await import('unpdf');
-      const pdf = await getDocumentProxy(new Uint8Array(await (await download(id)).arrayBuffer()));
-      const { text: pages } = await extractText(pdf, { mergePages: false });
-      text = pages.join('\n\n');
+      // PDF besar/hasil scan langsung ditampilkan sebagai gambar halaman di peramban.
+      const size = +meta.size || 0;
+      if (size > 8e6) return send(res, 200, { id, name, pdf: `/api/file?id=${id}` }, 86400);
+      try {
+        const { extractText, getDocumentProxy } = await import('unpdf');
+        const pdf = await getDocumentProxy(new Uint8Array(await (await download(id)).arrayBuffer()));
+        const { text: pages } = await extractText(pdf, { mergePages: false });
+        const chars = pages.join('').replace(/\s/g, '').length;
+        // Rata-rata < 150 huruf per halaman = kemungkinan besar hasil scan.
+        if (chars / Math.max(1, pages.length) < 150)
+          return send(res, 200, { id, name, pdf: `/api/file?id=${id}` }, 86400);
+        text = pages.join('\n\n');
+      } catch {
+        return send(res, 200, { id, name, pdf: `/api/file?id=${id}` }, 86400);
+      }
     } else if (mt === 'text/html' || /\.html?$/i.test(name)) {
       text = htmlToText(await (await download(id)).text());
     } else {
@@ -60,7 +71,10 @@ export default async function handler(req, res) {
       text = buf.toString('utf8');
       if (text.includes('�')) text = buf.toString('latin1');
     }
-    send(res, 200, { id, name, paragraphs: toParagraphs(text) }, 86400);
+    const paragraphs = toParagraphs(text);
+    if (!paragraphs.length)
+      return send(res, 422, { error: `File "${name}" (${mt}, ${meta.size || '?'} byte) tidak berisi teks yang bisa dibaca.` });
+    send(res, 200, { id, name, paragraphs }, 86400);
   } catch (e) {
     send(res, 502, { error: String(e.message || e) });
   }

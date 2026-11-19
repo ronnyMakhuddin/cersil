@@ -424,3 +424,32 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
 .slab.book .cover { width: 100%; height: 100%; aspect-ratio: auto; }
+
+.page.pdf { padding: 2.5%; }
+.page.pdf::after { display: none; }
+.page.pdf .body { height: 100%; display: grid; place-items: center; }
+.pdf-img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; mix-blend-mode: multiply; }
+
+/* Kategori pengarang */
+.cats { display: flex; flex-wrap: wrap; gap: 8px; margin: -6px 0 28px; }
+.chip {
+  padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border);
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.chip span { color: var(--muted); font-weight: 500; margin-left: 4px; }
+.chip:hover { border-color: var(--accent); }
+.chip.on { background: var(--accent); color: var(--ink); border-color: var(--accent); }
+.chip.on span { color: rgba(27, 26, 23, 0.6); }
+.cat-group + .cat-group { margin-top: 44px; }
+.cat-title {
+  display: flex; align-items: baseline; gap: 10px; margin: 0 0 18px;
+  font-family: var(--f-display); font-size: 26px; font-weight: 700;
+  border-bottom: 1px solid var(--border); padding-bottom: 10px;
+}
+.cat-title small { font-family: var(--f-ui); font-size: 12px; font-weight: 500; color: var(--muted); }
+.cat-title .seal-sm { width: 12px; height: 12px; border-radius: 3px; background: var(--accent-strong); align-self: center; }
+@media (max-width: 760px) {
+  .cats { flex-wrap: nowrap; overflow-x: auto; margin-right: -16px; padding-right: 16px; scrollbar-width: none; }
+  .chip { flex: none; }
+}

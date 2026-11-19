@@ -38,10 +38,11 @@ app.innerHTML = `
   <section class="view dots" id="grid">
     <div class="grid-wrap">
       <div class="grid-top">
-        <div><h2>Semua Novel</h2><p class="grid-count"></p></div>
-        <label class="search">${icon('search')}<input type="search" placeholder="Cari judul atau pengarang…" aria-label="Cari novel"></label>
+        <div><h2>Koleksi Buku</h2><p class="grid-count"></p></div>
+        <label class="search">${icon('search')}<input type="search" placeholder="Cari judul, seri, atau pengarang…" aria-label="Cari buku"></label>
       </div>
-      <div class="grid"></div>
+      <div class="cats"></div>
+      <div class="grid-body"></div>
     </div>
   </section>
   <section class="view dots" id="semesta">
@@ -86,6 +87,7 @@ async function loadNovels() {
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || r.statusText);
     if (j.source === 'drive' && j.novels.length) { source = 'drive'; return j.novels; }
+    if (j.source === 'drive') toast('Folder Google Drive terbaca, tetapi belum ada file buku yang dikenali (PDF, Google Docs, DOCX, TXT). Menampilkan novel contoh.');
     if (j.source === 'drive') toast('Folder Google Drive terbaca, tetapi belum ada file novel yang dikenali (Google Docs, PDF, DOCX, TXT). Menampilkan novel contoh.');
     else toast('Mode contoh: atur GOOGLE_API_KEY di Vercel agar novel dari Google Drive tampil.');
   } catch (e) {
@@ -102,6 +104,7 @@ async function loadChapter(novel, ch) {
   const r = await fetch('/api/chapter?id=' + encodeURIComponent(c.id));
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j.error || 'HTTP ' + r.status);
+  if (j.pdf) { chapterCache.set(c.id, { pdf: j.pdf }); return { pdf: j.pdf }; }
   if (!j.paragraphs?.length) throw new Error('File ini tidak berisi teks yang bisa dibaca.');
   chapterCache.set(c.id, j.paragraphs);
   return j.paragraphs;
@@ -150,23 +153,45 @@ $('#koleksi').addEventListener('mousemove', (e) => {
   $('#koleksi .stage').style.transform = `rotateY(${x * 10}deg) rotateX(${-y * 8}deg)`;
 });
 
-// ---------- Grid ----------
+// ---------- Grid (dikelompokkan per kategori/pengarang) ----------
+let activeCat = '';
+function bookCard(n) {
+  const p = getProgress(n.id);
+  const pct = p ? Math.max(3, Math.round(((p.ch + (p.pages ? (p.para + 1) / p.pages : 0)) / n.chapters.length) * 100)) : 0;
+  return `<button class="card" data-id="${esc(n.id)}">${coverHtml(n)}<h3>${esc(n.title)}</h3>
+    <div class="meta"><span>${n.chapters.length > 1 ? `${n.chapters.length} jilid` : '1 jilid'}${n.edition ? ' · ' + esc(n.edition) : ''}</span></div>
+    ${p ? `<div class="bar" title="Terakhir dibaca: jilid ${p ? p.ch + 1 : ''}"><i style="width:${pct}%"></i></div>` : ''}</button>`;
+}
 function buildGrid(q = '') {
-  const grid = $('#grid .grid');
+  const wrap = $('#grid .grid-body');
   const terms = q.toLowerCase().trim();
-  const list = terms ? novels.filter((n) => (n.title + ' ' + (n.author || '')).toLowerCase().includes(terms)) : novels;
-  $('#grid .grid-count').textContent = `${novels.length} judul${source === 'sample' ? ' contoh' : ' dari Google Drive'}${terms ? ` · ${list.length} cocok` : ''}`;
-  grid.innerHTML = list.length
-    ? list.map((n) => {
-        const p = getProgress(n.id);
-        const pct = p ? Math.max(4, Math.round(((p.ch + 1) / n.chapters.length) * 100)) : 0;
-        return `<button class="card" data-id="${esc(n.id)}">${coverHtml(n)}<h3>${esc(n.title)}</h3>
-          <div class="meta"><span>${esc(n.author || '')}${n.author ? ' · ' : ''}${n.chapters.length} bagian</span></div>
-          ${p ? `<div class="bar" title="Terakhir dibaca: bagian ${p.ch + 1}"><i style="width:${pct}%"></i></div>` : ''}</button>`;
-      }).join('')
-    : `<div class="empty">Tidak ada novel yang cocok dengan “${esc(q)}”.</div>`;
+  const cats = [...new Set(novels.map((n) => n.category || n.author || 'Lainnya'))];
+  $('#grid .cats').innerHTML = cats.length > 1
+    ? [['', 'Semua'], ...cats.map((c) => [c, c])].map(([v, l]) =>
+        `<button class="chip ${v === activeCat ? 'on' : ''}" data-cat="${esc(v)}">${esc(l)} <span>${v ? novels.filter((n) => (n.category || n.author || 'Lainnya') === v).length : novels.length}</span></button>`).join('')
+    : '';
+  const list = novels.filter((n) =>
+    (!activeCat || (n.category || n.author || 'Lainnya') === activeCat) &&
+    (!terms || [n.title, n.author, n.series, n.category].join(' ').toLowerCase().includes(terms)));
+  $('#grid .grid-count').textContent = `${novels.length} buku · ${cats.length} pengarang${source === 'sample' ? ' (contoh)' : ''}${terms || activeCat ? ` · ${list.length} ditampilkan` : ''}`;
+  if (!list.length) { wrap.innerHTML = `<div class="empty">Tidak ada buku yang cocok${q ? ` dengan “${esc(q)}”` : ''}.</div>`; return; }
+  const groups = new Map();
+  for (const n of list) {
+    const c = n.category || n.author || 'Lainnya';
+    if (!groups.has(c)) groups.set(c, []);
+    groups.get(c).push(n);
+  }
+  wrap.innerHTML = [...groups].map(([c, items]) =>
+    `<section class="cat-group"><h3 class="cat-title"><span class="seal-sm"></span>${esc(c)} <small>${items.length} buku</small></h3>
+      <div class="grid">${items.map(bookCard).join('')}</div></section>`).join('');
 }
 $('#grid input').addEventListener('input', (e) => buildGrid(e.target.value));
+$('#grid .cats').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-cat]');
+  if (!b) return;
+  activeCat = b.dataset.cat;
+  buildGrid($('#grid input').value);
+});
 
 // ---------- Semesta (mosaik) ----------
 let pan = { x: 0, y: 0 };
@@ -217,6 +242,7 @@ function applyPan() {
 // ---------- Reader ----------
 const reader = new Reader($('#reader'), {
   loadChapter,
+  onNextBook: (id) => openNovel(id, 0),
   onClose: () => show(lastSection === 'intro' ? 'koleksi' : lastSection),
 });
 
@@ -316,8 +342,9 @@ addEventListener('resize', () => {
 });
 
 // ---------- Mulai ----------
+const initialHash = location.hash;
 function route() {
-  const h = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
+  const h = decodeURIComponent(initialHash.replace(/^#\/?/, ''));
   const m = h.match(/^baca\/(.+)\/(\d+)$/);
   if (m && novels.find((n) => String(n.id) === m[1])) { lastSection = 'koleksi'; return openNovel(m[1], +m[2] - 1); }
   const sec = SECTIONS.find(([s]) => s === h);

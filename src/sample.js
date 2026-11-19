@@ -7,7 +7,7 @@ export const SAMPLE_NOVELS = [
   {
     id: 'contoh-pedang-kabut',
     title: 'Pedang Kabut Lembah Merapi',
-    author: 'Contoh',
+    author: 'Contoh', category: 'Cerita Contoh',
     sample: true,
     chapters: [
       {
@@ -51,7 +51,7 @@ Pagi harinya, Arya mendapati Ki Rumpaka sudah menunggunya di halaman dengan dua 
   {
     id: 'contoh-kitab-angin',
     title: 'Kitab Angin Selatan',
-    author: 'Contoh',
+    author: 'Contoh', category: 'Cerita Contoh',
     sample: true,
     chapters: [
       {
@@ -78,7 +78,7 @@ Ketika para pengunjung berani menoleh lagi, sudut kedai itu sudah kosong. Di ata
   {
     id: 'contoh-pendekar-seruling',
     title: 'Pendekar Seruling Bambu Kuning',
-    author: 'Contoh',
+    author: 'Contoh', category: 'Cerita Contoh',
     sample: true,
     chapters: [
       {
